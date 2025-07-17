@@ -10,7 +10,49 @@ services:
       - "5433:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro  # ✅ THIS LINE
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - smart-recruiter-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - smart-recruiter-network
+
+  backend:
+    build:
+      context: ./backend/node_api
+      dockerfile: Dockerfile
+    container_name: smart-recruiter-backend
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=admin
+      - DB_PASSWORD=password
+      - DB_NAME=smart_recruiter
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - EMBEDDING_MODEL=nomic-embed-text
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+    networks:
+      - smart-recruiter-network
+    restart: unless-stopped
 
 volumes:
   pg_data:
+
+networks:
+  smart-recruiter-network:
+    driver: bridge
